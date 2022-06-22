@@ -11,8 +11,11 @@ export const FORM_ITEM = connect(
         : undefined
       : undefined;
     return {
+      ...props,
+      class: 'formily-render__formItem',
+      style: { '--form-item-column': props.span ?? 3 },
       feedback,
-      'validation-status': feedback ? 'error' : undefined
+      'validation-status': feedback ? 'error' : undefined,
     };
   })
 );

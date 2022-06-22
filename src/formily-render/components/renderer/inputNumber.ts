@@ -6,9 +6,7 @@ export const INPUT_NUMBER = connect(
   mapProps((props, field: any) => {
     return {
       ...props,
-      'onUpdate:value': field.onChange,
-      onInput: null,
-      onChange: null
+      'onUpdate:value': field.onChange
     };
   })
 );

@@ -1,50 +1,52 @@
 <template>
-  <n-form>
-    <section class="formily-render__wrapper" :style="{'--column':column}">
-      <form-provider :form="form">
-        <schema-field :schema="renderSchema"/>
-        <form-consumer>
-          <template #default="{ form }">
-            <div style="white-space: pre">
-              {{ JSON.stringify(form.values, null, 2) }}
-            </div>
-          </template>
-        </form-consumer>
-      </form-provider>
-    </section>
-  </n-form>
+  <section class="formily-render__wrapper" :style="{ '--column': column }">
+    <form-provider :form="formModel">
+      <schema-field :schema="renderSchema"/>
+    </form-provider>
+  </section>
 </template>
 
 <script lang="ts" setup>
 import { ISchema } from '@formily/json-schema/esm/types';
-import { useFormilyFormatter } from './hooks';
-import { TEXTAREA, INPUT, SELECT, FORM_ITEM, INPUT_NUMBER, COLLAPSE } from './components';
-import { computed, PropType, ref } from 'vue';
+import { useFieldList2Schema } from './hooks';
+import {
+  TEXTAREA,
+  INPUT,
+  SELECT,
+  FORM_ITEM,
+  INPUT_NUMBER,
+  COLLAPSE,
+  INPUT_GROUP, DATE,
+} from './components';
+import { computed, PropType } from 'vue';
 import { createForm } from '@formily/core';
-import { createSchemaField, FormProvider, FormConsumer } from '@formily/vue';
+import { createSchemaField, FormProvider } from '@formily/vue';
 import { log } from './utils';
 
 const props = defineProps({
   fieldList: { type: Array as PropType<Record<string, any>[]> },
   schema: { type: Object as PropType<ISchema> },
-  column: { type: Number, default: 4 }
+  column: { type: Number, default: 12 },
+  initialData: { type: Object as PropType<Record<string, any>>, default: () => ({}) },
 });
 
-const { formatter } = useFormilyFormatter();
+const { transform } = useFieldList2Schema();
 
-const form = createForm({
-  effects() {},
+const formModel = createForm({
+  initialValues: props.initialData,
 });
 
 const { SchemaField } = createSchemaField({
   components: {
     TEXTAREA,
     INPUT,
+    INPUT_GROUP,
     SELECT,
     FORM_ITEM,
     INPUT_NUMBER,
-    COLLAPSE
-  }
+    COLLAPSE,
+    DATE
+  },
 });
 
 const renderSchema = computed<ISchema>(() => {
@@ -53,7 +55,7 @@ const renderSchema = computed<ISchema>(() => {
   } else if (props.fieldList) {
     return {
       type: 'object',
-      properties: formatter(props.fieldList),
+      properties: transform(props.fieldList),
     };
   }
   log(`invalid props field, you should provide at least one of schema or fieldList`, 'warn');
@@ -62,25 +64,51 @@ const renderSchema = computed<ISchema>(() => {
 
 defineExpose({
   validate() {
-    return form.validate();
-  }
+    return formModel.validate();
+  },
 });
 </script>
 
 <style lang="less">
-.formily-grid-display {
-  display: grid !important;
-  grid-template-columns: repeat(var(--column), minmax(0px, 1fr));
-  gap: 0 12px;
+@block: ~"formily-render";
+
+#formily-grid() {
+  .display(@column) {
+    display: grid !important;
+    grid-template-columns: repeat(@column, minmax(0px, 1fr));
+    gap: 0 12px;
+  }
+  .item(@column) {
+    grid-column: span @column / span @column;
+  }
 }
 
-.formily-render__wrapper {
-  .formily-grid-display();
+#formily-input-group(@direction) {
+  border-bottom-@{direction}-radius: 0;
+  border-top-@{direction}-radius: 0;
+}
 
-  .formily-render__collapse {
-    grid-column: span var(--column) / span var(--column);
+.@{block} {
+  @display: #formily-grid .display(var(--column));
+  @item: #formily-grid .item(var(--column));
+  @form-item: #formily-grid .item(var(--form-item-column));
 
-    > header {
+  &__wrapper {
+    @display();
+  }
+
+  &__formItem {
+    @form-item();
+
+    .n-date-picker {
+      width: 100%;
+    }
+  }
+
+  &__collapse {
+    @item();
+
+    &Header {
       cursor: pointer;
       display: flex;
       background: #fafafa;
@@ -90,10 +118,35 @@ defineExpose({
       margin-bottom: 8px;
       border: 1px solid #d9d9d9;
     }
+
+    &Item {
+      @display();
+    }
   }
 
-  .formily-render__collapse__item {
-    .formily-grid-display();
+  &__inputGroup {
+    @item();
+    display: flex;
+    align-items: flex-end;
+
+    > div {
+      flex: 1;
+
+      &:not(:last-of-type) {
+        .n-input__border,
+        .n-base-selection__border {
+          border-right: 0;
+          #formily-input-group(right);
+        }
+      }
+
+      &:last-of-type {
+        .n-input__border,
+        .n-base-selection__border {
+          #formily-input-group(left);
+        }
+      }
+    }
   }
 }
 </style>

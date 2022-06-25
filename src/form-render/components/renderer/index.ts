@@ -5,4 +5,6 @@ export * from "./textarea";
 export * from "./inputNumber";
 export * from "./collapse";
 export * from "./inputGroup";
-export * from './date';
+export * from "./date";
+export * from "./cascader";
+export * from "./combination";

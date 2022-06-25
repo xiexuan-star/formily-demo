@@ -1,14 +1,20 @@
 <template>
   <section class="formily-render__wrapper" :style="{ '--column': column }">
     <form-provider :form="formModel">
-      <schema-field :schema="renderSchema"/>
+      <slot :schema-filed="SchemaField">
+        <schema-field :schema="renderSchema" />
+      </slot>
     </form-provider>
   </section>
 </template>
 
 <script lang="ts" setup>
-import { ISchema } from '@formily/json-schema/esm/types';
-import { useFieldList2Schema } from './hooks';
+import { InjectAsyncQueue } from "@/modules/clidoctor/view/workstation/patientInfo/form-render/constants";
+import { InjectionSchemaField } from "./constants";
+import { useFormVisitor } from "./hooks/useFormVisitor";
+import { FormVisitorMap } from "./types";
+import { ISchema } from "@formily/json-schema/esm/types";
+import { useAsyncQueue, useFieldList2Schema } from "./hooks";
 import {
   TEXTAREA,
   INPUT,
@@ -16,50 +22,74 @@ import {
   FORM_ITEM,
   INPUT_NUMBER,
   COLLAPSE,
-  INPUT_GROUP, DATE,
-} from './components';
-import { computed, PropType } from 'vue';
-import { createForm } from '@formily/core';
-import { createSchemaField, FormProvider } from '@formily/vue';
-import { log } from './utils';
+  INPUT_GROUP,
+  DATE,
+  SEARCH_CASCADE,
+  COMBINATION,
+} from "./components";
+import { Component, computed, FunctionalComponent, inject, PropType, provide } from "vue";
+import { createForm, onFieldValueChange, onFormValuesChange } from "@formily/core";
+import { createSchemaField, FormProvider, useForm } from "@formily/vue";
+import { cloneDeep } from "lodash-es";
 
 const props = defineProps({
   fieldList: { type: Array as PropType<Record<string, any>[]> },
   schema: { type: Object as PropType<ISchema> },
   column: { type: Number, default: 12 },
   initialData: { type: Object as PropType<Record<string, any>>, default: () => ({}) },
+  fieldVisitor: { type: Object as PropType<FormVisitorMap> },
+  components: {
+    type: Object as PropType<Record<string, Component | FunctionalComponent>>,
+    default: () => ({}),
+  },
 });
+
+const emit = defineEmits(["change"]);
 
 const { transform } = useFieldList2Schema();
 
+!inject(InjectAsyncQueue) && provide(InjectAsyncQueue, useAsyncQueue().create());
+
 const formModel = createForm({
   initialValues: props.initialData,
-});
-
-const { SchemaField } = createSchemaField({
-  components: {
-    TEXTAREA,
-    INPUT,
-    INPUT_GROUP,
-    SELECT,
-    FORM_ITEM,
-    INPUT_NUMBER,
-    COLLAPSE,
-    DATE
+  effects() {
+    onFieldValueChange("*", (field, form) => {
+      emit("change", { field, form });
+    });
   },
 });
+
+const SchemaField = inject(
+  InjectionSchemaField,
+  createSchemaField({
+    components: {
+      COLLAPSE,
+      INPUT_GROUP,
+      FORM_ITEM,
+      TEXTAREA,
+      INPUT,
+      SELECT,
+      INPUT_NUMBER,
+      DATE,
+      SEARCH_CASCADE,
+      COMBINATION,
+      ...props.components,
+    },
+  }).SchemaField
+);
+
+provide(InjectionSchemaField, SchemaField);
+
+const { traverse } = useFormVisitor();
 
 const renderSchema = computed<ISchema>(() => {
   if (props.schema) {
     return props.schema;
   } else if (props.fieldList) {
-    return {
-      type: 'object',
-      properties: transform(props.fieldList),
-    };
+    const _fieldList = traverse(cloneDeep(props.fieldList), props.fieldVisitor);
+    return { type: "object", properties: transform(_fieldList) };
   }
-  log(`invalid props field, you should provide at least one of schema or fieldList`, 'warn');
-  return { type: 'object', properties: [] };
+  return { type: "object", properties: [] };
 });
 
 defineExpose({
@@ -76,7 +106,7 @@ defineExpose({
   .display(@column) {
     display: grid !important;
     grid-template-columns: repeat(@column, minmax(0px, 1fr));
-    gap: 0 12px;
+    gap: 0 8px;
   }
   .item(@column) {
     grid-column: span @column / span @column;
@@ -146,6 +176,28 @@ defineExpose({
           #formily-input-group(left);
         }
       }
+    }
+  }
+
+  &__combination {
+    &Close {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: red;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      vertical-align: middle;
+      font-size: 16px;
+    }
+    &Content {
+      position: relative;
     }
   }
 }

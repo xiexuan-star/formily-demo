@@ -13,7 +13,7 @@ export function useFormilySchema() {
   }
 
   function createField(
-    componentName: string | [Component, Record<string, any>?],
+    componentName: string | [Component, AnyObject?],
     options: ISchema & { name: string }
   ): ISchema {
     return {

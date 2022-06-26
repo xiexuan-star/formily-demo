@@ -7,7 +7,7 @@ import { computed, defineComponent, PropType, ref } from "vue";
 import FormRender from "../../formRender.vue";
 
 const script = defineComponent({
-  name: "COMBINATION",
+  name: "FormCombination",
   props: {
     title: { type: String, default: "" },
     value: { type: String },
@@ -31,7 +31,7 @@ const script = defineComponent({
       _values.value.splice(idx, 1);
     }
 
-    const _values = ref<Record<string, any>[]>([]);
+    const _values = ref<AnyObject[]>([]);
 
     function initValues(data?: string) {
       if (!data) return;

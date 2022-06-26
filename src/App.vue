@@ -1,18 +1,29 @@
 <template>
   <section style="padding: 20px">
-    <form-render :initial-data="initialData" ref="formilyRenderRef" :field-list="mockData"/>
+    <form-render @change="onChange" :initial-data="initialData" ref="formRenderRef" :field-list="mockData"/>
     <n-button @click="validate">validate</n-button>
   </section>
 </template>
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import FormRender from './formily-render/formRender.vue';
+import { useFormRequest } from './form-render/hooks';
+import FormRender from './form-render/formRender.vue';
 import { mockData, initialData } from './mock';
+import http from './http';
 
-const formilyRenderRef = ref<any>();
+useFormRequest().registGlobHttpInstance(http as any);
+
+const formRenderRef = ref<any>();
 
 async function validate() {
-  await formilyRenderRef.value?.validate();
+  await formRenderRef.value?.validate();
+}
+
+function onChange({ field, fieldInstance, fieldName, value }: any) {
+  console.log(field, fieldName, value);
+  if (fieldName === '其它联系方式') {
+    formRenderRef.value.setField('vaa05', value);
+  }
 }
 </script>

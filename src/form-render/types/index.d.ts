@@ -1,14 +1,24 @@
-import { AsyncQueue } from "../hooks";
+import { AsyncQueue } from '../hooks';
 
-export type FormVisitorMap = Record<string, (item: Record<string, any>) => Record<string, any>>;
+export interface FieldVisitorContext {
+  field: AnyObject,
 
-export type FormRequestType = "post" | "get" | "patch" | "delete" | "put";
+  replace(f: AnyObject): void
+
+  insertBefore(f: AnyObject | AnyObject[]): void
+
+  insertAfter(f: AnyObject | AnyObject[]): void
+}
+
+export type FieldVisitor = Record<string, (context: FieldVisitorContext) => void>;
+
+export type FormRequestType = 'post' | 'get' | 'patch' | 'delete' | 'put';
 
 export interface FormAsyncQueueItem {
   key: any;
   url: string;
   method: FormRequestType;
-  params?: Record<string, any>;
+  params?: AnyObject;
 }
 
-export type FormAsyncQueue = AsyncQueue<FormAsyncQueueItem, string, Record<string, any>[]>;
+export type FormAsyncQueue = AsyncQueue<FormAsyncQueueItem, any, AnyObject[]>;

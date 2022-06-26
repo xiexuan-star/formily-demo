@@ -1,7 +1,7 @@
 type RequestInstance = Record<string, Function>;
 let http: null | RequestInstance = null;
 
-export function useFormilyRequest() {
+export function useFormRequest() {
   function getHttpInstance() {
     return http;
   }

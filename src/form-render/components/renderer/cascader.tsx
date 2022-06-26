@@ -18,16 +18,16 @@ type UrlConfig = {
 const script = defineComponent({
   name: "FormCascader",
   props: {
-    options: { type: Array as PropType<Record<string, any>[]>, default: () => [] },
+    options: { type: Array as PropType<AnyObject[]>, default: () => [] },
     deep: { type: [Number, String], required: true },
     urlConfig: { type: Object as PropType<UrlConfig> },
   },
   setup(props, { slots, attrs }) {
-    const _options = ref<Record<string, any>[] | null | undefined>(null);
+    const _options = ref<AnyObject[] | null | undefined>(null);
     const { title } = useFormField();
     const asyncQueue = inject(InjectAsyncQueue)!;
 
-    async function fetchData(option?: Record<string, any>) {
+    async function fetchData(option?: AnyObject) {
       // 已有_option数据情况下，不再对层级为0的数据发送请求
       if (!option && _options.value) return;
       const config = props.urlConfig;
@@ -56,7 +56,7 @@ const script = defineComponent({
         key: title.value,
         params,
       });
-      const result = data.reduce((res: Record<string, any>[], d) => {
+      const result = data.reduce((res: AnyObject[], d) => {
         res.push({
           label: d[config.nameKey],
           value: d[config.valueKey],

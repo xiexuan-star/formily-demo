@@ -2,7 +2,7 @@ import { ISchema } from "@formily/json-schema/esm/types";
 import { isObject } from "@vueuse/core";
 
 interface SchemaCreator {
-  (item: Record<string, any>): ISchema;
+  (item: AnyObject): ISchema;
 }
 
 /**
@@ -94,7 +94,7 @@ export function useFieldList2Schema() {
     };
   };
 
-  const creatorMap = new Map<String, SchemaCreator>([
+  const creatorMap =new Map<string,SchemaCreator> ([
     ["LINEBAR", createCollapseSchema],
     ["INPUT", createTemplateSchema],
     ["SELECT", createSelectSchema],
@@ -110,10 +110,10 @@ export function useFieldList2Schema() {
   };
 
   const createWidgetCombinationSchema: SchemaCreator = item => {
-    const suffixList: Record<string, any>[] = Array.isArray(item.suffixConfig)
+    const suffixList: AnyObject[] = Array.isArray(item.suffixConfig)
       ? item.suffixConfig
       : [item.suffixConfig];
-    const fieldList = [<Record<string, any>>{ ...item, suffixConfig: undefined }].concat(
+    const fieldList = [<AnyObject>{ ...item, suffixConfig: undefined }].concat(
       suffixList.map(suffix => {
         // 业务中此处需要渲染suffix, 但是is_show属性却在业务方错误的设置成了'0', 固定为'1'同时指定hide_title属性隐藏label
         // 也就是说, 组合控件的显隐完全由外层控件决定
@@ -129,7 +129,7 @@ export function useFieldList2Schema() {
     };
   };
 
-  function transform(fieldList: Record<string, any>[]) {
+  function transform(fieldList: AnyObject[]) {
     let prevCollapse: Record<string, ISchema> | null = null;
     return fieldList.reduce((fin, cur) => {
       if (cur.html_type === "LINEBAR") {

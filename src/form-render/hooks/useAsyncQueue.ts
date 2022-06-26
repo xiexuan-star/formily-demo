@@ -1,6 +1,6 @@
-import { FormAsyncQueueItem } from "@/modules/clidoctor/view/workstation/patientInfo/form-render/types";
-import { useCommonLog } from "./useCommonLog";
-import { useFormilyRequest } from "./useFormilyRequest";
+import { FormAsyncQueueItem } from '../types';
+import { useCommonLog } from './useCommonLog';
+import { useFormRequest } from './useFormRequest';
 
 enum ENTRY_STATE {
   PENDING,
@@ -33,7 +33,7 @@ class AsyncQueueEntry<K = any> {
   // 用于保存任务处理的错误
   error?: any;
 
-  constructor(item: any, key: any, callback: EntryCallback) {
+  constructor(item: any, key: K, callback: EntryCallback) {
     this.item = item;
     this.key = key;
     this.state = ENTRY_STATE.PENDING;
@@ -68,13 +68,17 @@ interface AsyncQueueOptions<T = any, K = any> {
   getKey: (item: T) => K;
 }
 
+
+/**
+ * @constructor 并发控制器
+ */
 export class AsyncQueue<T = any, K = any, R = any> {
   // 名称
   name: string;
   // 处理函数
   processor: Processor<T, R>;
   // 并发数量
-  getKey: AsyncQueueOptions<T, K>["getKey"];
+  getKey: AsyncQueueOptions<T, K>['getKey'];
   // 获取唯一key
   parallelism: number;
 
@@ -101,9 +105,10 @@ export class AsyncQueue<T = any, K = any, R = any> {
   }
 
   add(item: T, callback: EntryCallback) {
-    if (this._stopped) return callback(new Error("Queue was stopped"));
+    if (this._stopped) return callback(new Error('Queue was stopped'));
     const key = this.getKey(item);
     if (this._entries.has(key)) {
+      console.log('getCahce=>', key);
       const entry = this._entries.get(key)!;
       if (entry.state === ENTRY_STATE.DONE) {
         // 如果缓存中的entry已经执行完毕,那么直接执行回调即可
@@ -124,8 +129,8 @@ export class AsyncQueue<T = any, K = any, R = any> {
 
     if (!this._processingLock) {
       this._processingLock = true;
-      // 下一次EventLoop调用, 确保本次宏任务中添加的所有回调只开启一次processing
-      setTimeout(this._ensureProcessing.bind(this));
+      // 确保本次宏任务中添加的所有回调只开启一次processing
+      Promise.resolve().then(this._ensureProcessing.bind(this));
     }
   }
 
@@ -152,7 +157,7 @@ export class AsyncQueue<T = any, K = any, R = any> {
       // 但是activeTasks--是否异步取决于处理器
       this._startProcess(entry);
     }
-    // 解锁,该行为只会发生在当前任务中的回调全部推入之后
+    // 在回调全部推入队列或达到并发上限时解锁
     this._processingLock = false;
   }
 
@@ -163,9 +168,9 @@ export class AsyncQueue<T = any, K = any, R = any> {
         if (e) {
           this._handlerResult(
             entry,
-            new Error(`AsyncQueue(${this.name} processor error) => ${e}`),
-            undefined
+            e
           );
+          return;
         }
         this._handlerResult(entry, e, r);
       },
@@ -173,7 +178,7 @@ export class AsyncQueue<T = any, K = any, R = any> {
     );
   }
 
-  _handlerResult(entry: AsyncQueueEntry, e: any, r: any) {
+  _handlerResult(entry: AsyncQueueEntry, e?: any, r?: any) {
     const callback = entry.callback;
     entry.state = ENTRY_STATE.DONE;
     entry.callback = undefined;
@@ -189,17 +194,17 @@ export class AsyncQueue<T = any, K = any, R = any> {
     // 重置this._processingLock状态, 并开启调度器执行
     if (!this._processingLock) {
       this._processingLock = true;
-      setTimeout(this._ensureProcessing);
+      Promise.resolve().then(this._ensureProcessing.bind(this));
     }
   }
 }
 
 export function useAsyncQueue() {
-  const { getHttpInstance } = useFormilyRequest();
+  const { getHttpInstance } = useFormRequest();
 
   function create(parallelism = 3) {
-    return new AsyncQueue<FormAsyncQueueItem, string | Symbol, { label: string; value: any }[]>({
-      name: "FormRender",
+    return new AsyncQueue<FormAsyncQueueItem, any, { label: string; value: any }[]>({
+      name: 'FormRender',
       parallelism,
       async processor({ method, params, url }, cb, removeCache) {
         const http = getHttpInstance();
@@ -210,11 +215,13 @@ export function useAsyncQueue() {
           return;
         }
         try {
-          const { data, success } = await http[method](url, params);
-          if (!success) throw new Error("request failure");
-          cb(data);
+          const res = await http[method](url, params);
+          const { data, success } = res;
+          if (!success) throw new Error(`Request error => ${ res }`);
+          cb(undefined, data);
         } catch (e) {
-          cb(undefined, e);
+          cb(new Error(`Request error => ${ e }`));
+          removeCache();
         }
       },
       getKey(item) {

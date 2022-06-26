@@ -2,49 +2,38 @@
   <section class="formily-render__wrapper" :style="{ '--column': column }">
     <form-provider :form="formModel">
       <slot :schema-filed="SchemaField">
-        <schema-field :schema="renderSchema" />
+        <schema-field :schema="renderSchema"/>
       </slot>
     </form-provider>
   </section>
 </template>
 
 <script lang="ts" setup>
-import { InjectAsyncQueue } from "@/modules/clidoctor/view/workstation/patientInfo/form-render/constants";
-import { InjectionSchemaField } from "./constants";
-import { useFormVisitor } from "./hooks/useFormVisitor";
-import { FormVisitorMap } from "./types";
-import { ISchema } from "@formily/json-schema/esm/types";
-import { useAsyncQueue, useFieldList2Schema } from "./hooks";
-import {
-  TEXTAREA,
-  INPUT,
-  SELECT,
-  FORM_ITEM,
-  INPUT_NUMBER,
-  COLLAPSE,
-  INPUT_GROUP,
-  DATE,
-  SEARCH_CASCADE,
-  COMBINATION,
-} from "./components";
-import { Component, computed, FunctionalComponent, inject, PropType, provide } from "vue";
-import { createForm, onFieldValueChange, onFormValuesChange } from "@formily/core";
-import { createSchemaField, FormProvider, useForm } from "@formily/vue";
-import { cloneDeep } from "lodash-es";
+import { InjectAsyncQueue } from './constants';
+import { InjectionSchemaField } from './constants';
+import { useFieldVisitor } from './hooks';
+import { FieldVisitor } from './types';
+import { ISchema } from '@formily/json-schema/esm/types';
+import { useAsyncQueue, useFieldList2Schema } from './hooks';
+import * as components from './components';
+import { Component, computed, FunctionalComponent, inject, PropType, provide } from 'vue';
+import { createForm, onFieldValueChange } from '@formily/core';
+import { createSchemaField, FormProvider } from '@formily/vue';
 
 const props = defineProps({
-  fieldList: { type: Array as PropType<Record<string, any>[]> },
+  fieldList: { type: Array as PropType<AnyObject[]> },
   schema: { type: Object as PropType<ISchema> },
   column: { type: Number, default: 12 },
-  initialData: { type: Object as PropType<Record<string, any>>, default: () => ({}) },
-  fieldVisitor: { type: Object as PropType<FormVisitorMap> },
+  initialData: { type: Object as PropType<AnyObject>, default: () => ({}) },
+  fieldVisitor: { type: Object as PropType<FieldVisitor> },
   components: {
     type: Object as PropType<Record<string, Component | FunctionalComponent>>,
     default: () => ({}),
   },
+  scope: { type: Object as PropType<AnyObject>, default: () => ({}) }
 });
 
-const emit = defineEmits(["change"]);
+const emit = defineEmits(['change']);
 
 const { transform } = useFieldList2Schema();
 
@@ -53,8 +42,8 @@ const { transform } = useFieldList2Schema();
 const formModel = createForm({
   initialValues: props.initialData,
   effects() {
-    onFieldValueChange("*", (field, form) => {
-      emit("change", { field, form });
+    onFieldValueChange('*', field => {
+      emit('change', { fieldInstance: field, field: field.props.name, fieldName: field.title, value: field.value });
     });
   },
 });
@@ -62,40 +51,30 @@ const formModel = createForm({
 const SchemaField = inject(
   InjectionSchemaField,
   createSchemaField({
-    components: {
-      COLLAPSE,
-      INPUT_GROUP,
-      FORM_ITEM,
-      TEXTAREA,
-      INPUT,
-      SELECT,
-      INPUT_NUMBER,
-      DATE,
-      SEARCH_CASCADE,
-      COMBINATION,
-      ...props.components,
-    },
+    components: { ...components, ...props.components },
+    scope: props.scope
   }).SchemaField
 );
 
 provide(InjectionSchemaField, SchemaField);
 
-const { traverse } = useFormVisitor();
+const { traverse } = useFieldVisitor();
 
 const renderSchema = computed<ISchema>(() => {
   if (props.schema) {
     return props.schema;
   } else if (props.fieldList) {
-    const _fieldList = traverse(cloneDeep(props.fieldList), props.fieldVisitor);
-    return { type: "object", properties: transform(_fieldList) };
+    const _fieldList = traverse(props.fieldList, props.fieldVisitor);
+    return { type: 'object', properties: transform(_fieldList) };
   }
-  return { type: "object", properties: [] };
+  return { type: 'object', properties: [] };
 });
 
 defineExpose({
   validate() {
     return formModel.validate();
   },
+  setFieldState: formModel.setFieldState.bind(formModel)
 });
 </script>
 
@@ -180,6 +159,8 @@ defineExpose({
   }
 
   &__combination {
+    width: 100%;
+
     &Close {
       position: absolute;
       right: 0;
@@ -196,6 +177,7 @@ defineExpose({
       vertical-align: middle;
       font-size: 16px;
     }
+
     &Content {
       position: relative;
     }

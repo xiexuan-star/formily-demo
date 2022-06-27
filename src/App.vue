@@ -23,7 +23,6 @@ async function validate() {
 }
 
 function onChange({ field, fieldInstance, fieldName, value }: any) {
-  console.log(field, fieldName, value);
   if (fieldName === '其它联系方式') {
     formRenderRef.value.setField('vaa05', value);
   }

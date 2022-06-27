@@ -35,7 +35,7 @@ const props = defineProps({
   scope: { type: Object as PropType<AnyObject>, default: () => ({}) },
 });
 
-const emit = defineEmits(["change"]);
+const emit = defineEmits(["formChange"]);
 
 const { transform } = useFieldList2Schema();
 
@@ -45,7 +45,7 @@ const formModel = createForm({
   initialValues: props.initialData,
   effects() {
     onFieldValueChange("*", field => {
-      emit("change", {
+      emit("formChange", {
         fieldInstance: field,
         field: field.props.name,
         fieldName: field.title,

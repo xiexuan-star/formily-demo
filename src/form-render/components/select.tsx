@@ -1,11 +1,11 @@
-import { InjectAsyncQueue } from '../../constants';
-import { useFormField } from '../../hooks';
-import { FormRequestType } from '../../types';
-import { formRenderLog } from '../../utils';
+import { InjectAsyncQueue } from '../constants';
+import { useFormField } from '../hooks';
+import { FormRequestType } from '../types';
+import { assignUpdateValue, formRenderLog } from '../utils';
 import { isObject } from '@vueuse/core';
 import { connect, mapProps } from '@formily/vue';
 import { NSelect } from 'naive-ui';
-import { computed, defineComponent, inject, onMounted, PropType, ref, watch } from 'vue';
+import { computed, defineComponent, inject, PropType, ref, watch } from 'vue';
 
 type UrlConfig = {
   method: FormRequestType;
@@ -22,7 +22,9 @@ const script = defineComponent({
   },
   setup(props, { slots, attrs }) {
     const _options = ref<AnyObject[] | null>(null);
+    // option缓存
     let cachedOptions: AnyObject[] | null = null;
+    // 上一次检索的内容
     let lastSearch: string | undefined;
 
     const asyncQueue = inject(InjectAsyncQueue)!;
@@ -46,7 +48,7 @@ const script = defineComponent({
       if (cachedOptions) {
         // TODO 根据拼音检索
         return (_options.value = cachedOptions.filter(option => {
-          return !content || option.label?.includes(content);
+          return !content || option[config.nameKey]?.includes(content);
         }));
       }
 
@@ -55,7 +57,7 @@ const script = defineComponent({
 
         _options.value = data.reduce((res: AnyObject[], d) => {
           if (d[config.nameKey]?.includes(content) || !content) {
-            res.push({ label: d[config.nameKey], value: d[config.valueKey] });
+            res.push(d);
           }
           return res;
         }, []);
@@ -92,6 +94,8 @@ const script = defineComponent({
         { ...attrs }
         remote
         filterable
+        labelField={ props.urlConfig?.nameKey ?? 'text' }
+        valueField={ props.urlConfig?.valueKey ?? 'value' }
         onSearch={ fetchData }
         onUpdate:show={ show => show && fetchData() }
         options={ renderOptions.value }
@@ -101,9 +105,4 @@ const script = defineComponent({
   },
 });
 
-export const SELECT = connect(
-  script,
-  mapProps({ dataSource: 'options' }, (props, field: any) => {
-    return { ...props, 'onUpdate:value': field.onChange };
-  })
-);
+export const SELECT = connect(script, mapProps({ dataSource: 'options' }, assignUpdateValue));

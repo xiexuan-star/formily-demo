@@ -1,11 +1,11 @@
-import { InjectAsyncQueue } from "../../constants";
-import { FormRequestType } from "../../types";
-import { useFormField } from "../../hooks";
-import { formRenderLog } from "../../utils";
-import { isObject } from "@vueuse/core";
-import { connect, mapProps } from "@formily/vue";
-import { NCascader } from "naive-ui";
-import { computed, defineComponent, inject, PropType, ref, watch } from "vue";
+import { InjectAsyncQueue } from '../constants';
+import { FormRequestType } from '../types';
+import { useFormField } from '../hooks';
+import { assignUpdateValue, formRenderLog } from '../utils';
+import { isObject } from '@vueuse/core';
+import { connect, mapProps } from '@formily/vue';
+import { NCascader } from 'naive-ui';
+import { computed, defineComponent, inject, PropType, ref, watch } from 'vue';
 
 type UrlConfig = {
   method: FormRequestType;
@@ -16,7 +16,7 @@ type UrlConfig = {
 };
 
 const script = defineComponent({
-  name: "FormCascader",
+  name: 'FormCascader',
   props: {
     options: { type: Array as PropType<AnyObject[]>, default: () => [] },
     deep: { type: [Number, String], required: true },
@@ -32,19 +32,19 @@ const script = defineComponent({
       if (!option && _options.value) return;
       const config = props.urlConfig;
       if (!config || !isObject(config)) {
-        formRenderLog(`invalid urlConfig (${config}) in CASCADER => ${title.value}`, "warn");
+        formRenderLog(`invalid urlConfig (${ config }) in CASCADER => ${ title.value }`, 'warn');
         return;
       }
 
       if (option?.depth + 1 >= props.deep) return;
       const parentDepth = option?.depth ?? -1;
 
-      const params: Record<string, string> = { lvlnr: parentDepth + 1 + "" };
+      const params: Record<string, string> = { lvlnr: parentDepth + 1 + '' };
       if (option) {
         if (!props.urlConfig.dependKey) {
           formRenderLog(
-            `invalid urlConfig.dependKey ${props.urlConfig.dependKey} in CASCADER => ${title.value}`,
-            "warn"
+            `invalid urlConfig.dependKey ${ props.urlConfig.dependKey } in CASCADER => ${ title.value }`,
+            'warn'
           );
           return;
         }
@@ -85,13 +85,15 @@ const script = defineComponent({
 
     return () => (
       <NCascader
-        {...attrs}
+        { ...attrs }
         remote
-        options={renderOptions.value}
+        labelField={ props.urlConfig?.nameKey ?? 'text' }
+        valueField={ props.urlConfig?.valueKey ?? 'value' }
+        options={ renderOptions.value }
         checkStrategy="child"
-        onLoad={fetchData}
-        onUpdate:show={show => show && fetchData()}
-        v-slots={slots}
+        onLoad={ fetchData }
+        onUpdate:show={ show => show && fetchData() }
+        v-slots={ slots }
       />
     );
   },
@@ -99,7 +101,5 @@ const script = defineComponent({
 
 export const SEARCH_CASCADE = connect(
   script,
-  mapProps({ dataSource: "options" }, (props, field: any) => {
-    return { ...props, "onUpdate:value": field.onChange };
-  })
+  mapProps({ dataSource: 'options' }, assignUpdateValue)
 );

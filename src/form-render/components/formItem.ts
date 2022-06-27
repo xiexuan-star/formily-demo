@@ -12,6 +12,7 @@ export const FORM_ITEM = connect(
       : undefined;
     return {
       ...props,
+      required: field.required,
       class: "formily-render__formItem",
       style: { "--form-item-column": props.span ?? 3 },
       feedback,

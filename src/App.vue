@@ -1,6 +1,7 @@
 <template>
   <section style="padding: 20px">
-    <form-render @change="onChange" :initial-data="initialData" ref="formRenderRef" :field-list="mockData"/>
+    <form-render @change="onChange" :initial-data="initialData" ref="formRenderRef" :field-list="mockData"
+                 :field-visitor="visitor"/>
     <n-button @click="validate">validate</n-button>
   </section>
 </template>
@@ -9,6 +10,7 @@
 import { ref } from 'vue';
 import { useFormRequest } from './form-render/hooks';
 import FormRender from './form-render/formRender.vue';
+import { FieldVisitor } from './form-render/types';
 import { mockData, initialData } from './mock';
 import http from './http';
 
@@ -26,4 +28,10 @@ function onChange({ field, fieldInstance, fieldName, value }: any) {
     formRenderRef.value.setField('vaa05', value);
   }
 }
+
+const visitor: FieldVisitor = {
+  vaa14({ field, replace, insertAfter, insertBefore }) {
+    field.alias += '123';
+  }
+};
 </script>

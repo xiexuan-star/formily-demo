@@ -1,10 +1,10 @@
-import { formRenderLog } from "../../utils";
+import { assignUpdateValue, formRenderLog } from "../utils";
 import { ISchema } from "@formily/json-schema/esm/types";
 import { connect, mapProps } from "@formily/vue";
 import { isObject } from "@vueuse/core";
 import { NButton } from "naive-ui";
 import { computed, defineComponent, PropType, ref } from "vue";
-import FormRender from "../../formRender.vue";
+import FormRender from "../formRender.vue";
 
 const script = defineComponent({
   name: "FormCombination",
@@ -83,9 +83,4 @@ const script = defineComponent({
   },
 });
 
-export const COMBINATION = connect(
-  script,
-  mapProps((props, field: any) => {
-    return { ...props, "onUpdate:value": field.onInput };
-  })
-);
+export const COMBINATION = connect(script, mapProps(assignUpdateValue));

@@ -1,10 +1,9 @@
-import { FormAsyncQueueItem } from '../types';
-import { useCommonLog } from './useCommonLog';
-import { useFormRequest } from './useFormRequest';
+import { FormAsyncQueueItem } from "../types";
+import { useCommonLog } from "./useCommonLog";
+import { useFormRequest } from "./useFormRequest";
 
 enum ENTRY_STATE {
   PENDING,
-  PROCESSING,
   DONE,
 }
 
@@ -68,7 +67,6 @@ interface AsyncQueueOptions<T = any, K = any> {
   getKey: (item: T) => K;
 }
 
-
 /**
  * @constructor 并发控制器
  */
@@ -77,23 +75,18 @@ export class AsyncQueue<T = any, K = any, R = any> {
   name: string;
   // 处理函数
   processor: Processor<T, R>;
-  // 并发数量
-  getKey: AsyncQueueOptions<T, K>['getKey'];
   // 获取唯一key
+  getKey: AsyncQueueOptions<T, K>["getKey"];
+  // 并发数量
   parallelism: number;
-
   // 当前队列中等待执行的任务
   _queued = new ArrayQueue<K>();
-
   // 当前队列中所有执行过的任务,用于去重
   _entries = new Map<K, AsyncQueueEntry<K>>();
-
   // 当前并发的任务数量
   _activeTasks = 0;
-
   // 同步锁, 保证一次任务只会开启一次processing
   _processingLock = false;
-
   // 队列是否结束
   _stopped = false;
 
@@ -105,15 +98,14 @@ export class AsyncQueue<T = any, K = any, R = any> {
   }
 
   add(item: T, callback: EntryCallback) {
-    if (this._stopped) return callback(new Error('Queue was stopped'));
+    if (this._stopped) return callback(new Error("Queue was stopped"));
     const key = this.getKey(item);
     if (this._entries.has(key)) {
-      console.log('getCahce=>', key);
       const entry = this._entries.get(key)!;
       if (entry.state === ENTRY_STATE.DONE) {
         // 如果缓存中的entry已经执行完毕,那么直接执行回调即可
         setTimeout(() => {
-          entry.callback && entry.callback(entry.error, entry.result);
+          callback && callback(entry.error, entry.result);
         });
         // 否则,推入该entry的callbacks
       } else if (!entry.callbacks) {
@@ -166,10 +158,7 @@ export class AsyncQueue<T = any, K = any, R = any> {
       entry.item,
       (e: any, r: any) => {
         if (e) {
-          this._handlerResult(
-            entry,
-            e
-          );
+          this._handlerResult(entry, e);
           return;
         }
         this._handlerResult(entry, e, r);
@@ -190,8 +179,8 @@ export class AsyncQueue<T = any, K = any, R = any> {
     if (entry.callbacks) {
       entry.callbacks.forEach(cb => cb(e, r));
     }
-    // 调度器任务完成,如果下一次EventLoop没有安排调度器执行
-    // 重置this._processingLock状态, 并开启调度器执行
+    // 如果关闭了同步锁, 说明当前轮次的loop已经执行完毕
+    // 打开同步锁, 开始下一次的loop
     if (!this._processingLock) {
       this._processingLock = true;
       Promise.resolve().then(this._ensureProcessing.bind(this));
@@ -204,7 +193,7 @@ export function useAsyncQueue() {
 
   function create(parallelism = 3) {
     return new AsyncQueue<FormAsyncQueueItem, any, { label: string; value: any }[]>({
-      name: 'FormRender',
+      name: "FormRender",
       parallelism,
       async processor({ method, params, url }, cb, removeCache) {
         const http = getHttpInstance();
@@ -217,15 +206,15 @@ export function useAsyncQueue() {
         try {
           const res = await http[method](url, params);
           const { data, success } = res;
-          if (!success) throw new Error(`Request error => ${ res }`);
+          if (!success) throw new Error(`Request error => ${res}`);
           cb(undefined, data);
         } catch (e) {
-          cb(new Error(`Request error => ${ e }`));
+          cb(new Error(`Request error => ${e}`));
           removeCache();
         }
       },
       getKey(item) {
-        return item.key;
+        return item.url + JSON.stringify(item.params || {});
       },
     });
   }

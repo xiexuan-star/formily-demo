@@ -24,3 +24,5 @@ export interface FormAsyncQueueItem {
 }
 
 export type FormAsyncQueue = AsyncQueue<FormAsyncQueueItem, any, AnyObject[]>;
+
+export type IdCardParseInfo = Record<'sex' | 'birthday', string> & Record<'age' | 'day' | 'month' | 'year', number>

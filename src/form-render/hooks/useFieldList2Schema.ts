@@ -1,4 +1,7 @@
+import { FIELD_BUSINESS_TYPE } from '../constants';
 import { FieldItem } from '../types';
+import { transformDateFormat } from '../utils';
+import { BusinessCollector } from './useBusinessBinding';
 import { useFormValidator } from './useFormValidator';
 import { ISchema } from '@formily/json-schema/esm/types';
 import { isObject } from '@vueuse/core';
@@ -11,7 +14,7 @@ interface SchemaCreator {
 /**
  * @description 胶水层, 将低代码平台中的fieldList转换为JSONSchema
  */
-export function useFieldList2Schema() {
+export function useFieldList2Schema(collector: BusinessCollector) {
   const { createValidatorSchema } = useFormValidator();
 
   // 作为标准的模板schema, 后续控件的schema基本上基于此模板生成
@@ -50,15 +53,18 @@ export function useFieldList2Schema() {
     const schema = createStandardSchema(item);
     Object.assign(schema['x-component-props'], {
       urlConfig: item.urlConfig,
-      options: item.option
+      options: item.option,
+      multiple: item.multi_select === '0', /* multi_select: 这个数值应该是平台那边反了 */
+      maxTagCount: (+item.multi_select_value)
     });
     return schema;
   };
 
   const createRadioSchema: SchemaCreator = item => {
-    const schema = createSelectSchema(item);
+    const schema = createStandardSchema(item);
     Object.assign(schema['x-component-props'], {
-      options: item.option
+      options: item.option,
+      vertical: item.__vertical
     });
     return schema;
   };
@@ -67,14 +73,8 @@ export function useFieldList2Schema() {
     const schema = createStandardSchema(item);
     Object.assign(schema['x-component-props'], {
       valueFormat: item.date_format,
-      type:
-        item.html_type === 'DATE'
-          ? item.date_format === 'yyyy-MM-dd'
-            ? 'date'
-            : item.date_format === 'yyyy-MM-dd HH:mm:ss'
-              ? 'datetime'
-              : undefined
-          : undefined,
+      type: transformDateFormat(item.date_format),
+      validate: item.validate
     });
     return schema;
   };
@@ -85,6 +85,15 @@ export function useFieldList2Schema() {
       urlConfig: item.urlConfig,
       deep: item.wordbook?.level_num,
       options: item.option
+    });
+    return schema;
+  };
+
+  const createSwitchSchema: SchemaCreator = item => {
+    const schema = createStandardSchema(item);
+    Object.assign(schema['x-component-props'], {
+      openDescription: item.open,
+      closeDescription: item.close
     });
     return schema;
   };
@@ -144,6 +153,8 @@ export function useFieldList2Schema() {
     ['SEARCH_CASCADE', createCascaderSchema],
     ['COMBINATION', createCombinationSchema],
     ['RADIO', createRadioSchema],
+    ['CHECKBOX', createRadioSchema /* 目前和RADIO的属性完全相同 */],
+    ['SWITCH', createSwitchSchema]
   ]);
 
   const createWidgetSchema: SchemaCreator = item => {
@@ -178,6 +189,8 @@ export function useFieldList2Schema() {
     let prevCollapse: Record<string, ISchema> | null = null;
     return fieldList.reduce((fin, cur) => {
       normalize(cur);
+      const obj_type = cur.validate?.obj_type;
+      obj_type && collector.collect(obj_type as FIELD_BUSINESS_TYPE, cur.val_key);
       if (cur.html_type === 'LINEBAR') {
         fin[cur.val_key] = createCollapseSchema(cur);
         prevCollapse = fin[cur.val_key].properties = {};

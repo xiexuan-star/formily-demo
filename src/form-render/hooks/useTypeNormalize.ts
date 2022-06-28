@@ -1,7 +1,7 @@
-// sideEffect
-// 胶水层, 将低代码中的控件转换成FormRender中的基本控件
 import { FieldItem } from '../types';
 
+// sideEffect
+// 胶水层, 将低代码中的控件转换成FormRender中的基本控件
 export function useTypeNormalize() {
   function normalizeAgeField(item: FieldItem) {
     item.html_type = 'INPUT';
@@ -26,13 +26,16 @@ export function useTypeNormalize() {
 
   function normalize(item: FieldItem) {
     const type = item.html_type;
+    if (['CHECK_BLOCK', 'RADIO_BLOCK'].includes(item.html_type)) {
+      item.__vertical = true;
+    }
+    if (item.html_type === 'AGE') {
+      normalizeAgeField(item);
+    }
     types.some(([rule, target]) => {
       const match = Array.isArray(rule) ? rule.includes(type) : rule === type;
       return match && (item.html_type = target);
     });
-    if (item.html_type === 'AGE') {
-      normalizeAgeField(item);
-    }
   }
 
   return { normalize };

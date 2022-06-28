@@ -65,7 +65,6 @@ const script = defineComponent({
     }
 
     initValues(props.value);
-    console.log('renbder');
 
     function stop(event: Event) {
       event.stopPropagation();
@@ -81,7 +80,7 @@ const script = defineComponent({
       return (
         <section class="formily-render__combination">
           <header class="formily-render__combinationHeader">
-            { props.title }
+            <h3> { props.title }</h3>
             <NButton onClick={ add } type="info" text> 新增 </NButton>
           </header>
           { Array.from({ length: combinationRepeat.value }).map((_, idx) => {

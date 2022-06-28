@@ -2,32 +2,33 @@
   <section class="formily-render__wrapper" :style="{ '--column': column }">
     <form-provider :form="formModel">
       <slot :schema-filed="SchemaField">
-        <schema-field :schema="renderSchema" />
+        <schema-field :schema="renderSchema"/>
       </slot>
     </form-provider>
   </section>
 </template>
 
 <script lang="ts" setup>
-import { cloneDeep } from "lodash-es";
-import { InjectAsyncQueue } from "./constants";
-import { InjectionSchemaField } from "./constants";
-import { useFieldVisitor } from "./hooks";
-import { FieldItem, FieldVisitor } from "./types";
-import { ISchema } from "@formily/json-schema/esm/types";
-import { useAsyncQueue, useFieldList2Schema } from "./hooks";
-import * as components from "./components";
-import { Component, computed, FunctionalComponent, inject, PropType, provide } from "vue";
-import { createForm, onFieldValueChange } from "@formily/core";
-import { createSchemaField, FormProvider } from "@formily/vue";
+import { cloneDeep } from 'lodash-es';
+import { InjectAsyncQueue, InjectionBusinessCollector } from './constants';
+import { InjectionSchemaField } from './constants';
+import { useFieldVisitor } from './hooks';
+import { useBusinessBinding } from './hooks/useBusinessBinding';
+import { FieldItem, FieldVisitor } from './types';
+import { ISchema } from '@formily/json-schema/esm/types';
+import { useAsyncQueue, useFieldList2Schema } from './hooks';
+import * as components from './components';
+import { Component, computed, FunctionalComponent, inject, PropType, provide } from 'vue';
+import { createForm, onFieldValueChange } from '@formily/core';
+import { createSchemaField, FormProvider } from '@formily/vue';
 
 const props = defineProps({
   fieldList: { type: Array as PropType<FieldItem[]> },
-  schema: { type: Object as PropType<ISchema> },
-  column: { type: Number, default: 12 },
-  parallelism: { type: Number, default: 3 },
   initialData: { type: Object as PropType<AnyObject>, default: () => ({}) },
   fieldVisitor: { type: Object as PropType<FieldVisitor> },
+  column: { type: Number, default: 12 },
+  parallelism: { type: Number, default: 3 },
+  schema: { type: Object as PropType<ISchema> },
   components: {
     type: Object as PropType<Record<string, Component | FunctionalComponent>>,
     default: () => ({}),
@@ -35,35 +36,38 @@ const props = defineProps({
   scope: { type: Object as PropType<AnyObject>, default: () => ({}) },
 });
 
-const emit = defineEmits(["formChange"]);
+const emit = defineEmits(['formChange']);
 
-const { transform } = useFieldList2Schema();
+const { create, trigger } = useBusinessBinding();
+const collector = inject(InjectionBusinessCollector, null) || create();
+const { transform } = useFieldList2Schema(collector);
 
-!inject(InjectAsyncQueue) && provide(InjectAsyncQueue, useAsyncQueue().create(props.parallelism));
+!inject(InjectAsyncQueue, null) && provide(InjectAsyncQueue, useAsyncQueue().create(props.parallelism));
 
 const formModel = createForm({
   initialValues: props.initialData,
   effects() {
-    onFieldValueChange("*", field => {
-      emit("formChange", {
+    onFieldValueChange('*', field => {
+      emit('formChange', {
         fieldInstance: field,
         field: field.props.name,
         fieldName: field.title,
         value: field.value,
       });
+      trigger(collector, formModel, field.props.name as string, field.value);
     });
   },
 });
 
-const SchemaField = inject(
-  InjectionSchemaField,
-  createSchemaField({
+// inject不给默认值, 避免重复provide
+let SchemaField = inject(InjectionSchemaField, null);
+if (!SchemaField) {
+  SchemaField = createSchemaField({
     components: { ...components, ...props.components },
     scope: props.scope,
-  }).SchemaField
-);
-
-provide(InjectionSchemaField, SchemaField);
+  }).SchemaField;
+  provide(InjectionSchemaField, SchemaField);
+}
 
 const { traverse } = useFieldVisitor();
 
@@ -72,9 +76,9 @@ const renderSchema = computed<ISchema>(() => {
     return props.schema;
   } else if (props.fieldList) {
     const _fieldList = traverse(cloneDeep(props.fieldList), props.fieldVisitor);
-    return { type: "object", properties: transform(_fieldList) };
+    return { type: 'object', properties: transform(_fieldList) };
   }
-  return { type: "object", properties: {} };
+  return { type: 'object', properties: {} };
 });
 
 defineExpose({
@@ -168,10 +172,22 @@ defineExpose({
   &__combination {
     width: 100%;
 
+    &Header {
+      > h3 {
+        font-size: 16px;
+        font-weight: 700;
+        padding: 0;
+        margin: 0;
+      }
+
+      display: flex;
+      gap: 12px;
+    }
+
     &Close {
       position: absolute;
       right: 0;
-      top: 0;
+      top: 5px;
       width: 14px;
       height: 14px;
       border-radius: 50%;

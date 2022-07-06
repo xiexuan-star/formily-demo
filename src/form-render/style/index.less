@@ -1,0 +1,121 @@
+@block: ~"form-render";
+
+#form-grid() {
+  .display(@column) {
+    display: grid !important;
+    grid-template-columns: repeat(@column, minmax(0px, 1fr));
+    gap: 0 8px;
+  }
+  .item(@column) {
+    grid-column: span @column / span @column;
+  }
+}
+
+#form-input-group(@direction) {
+  border-bottom-@{direction}-radius: 0;
+  border-top-@{direction}-radius: 0;
+}
+
+.@{block} {
+  @display: #form-grid .display(var(--column));
+  @item: #form-grid .item(var(--column));
+  @form-item: #form-grid .item(var(--form-item-column));
+
+  &__wrapper {
+    @display();
+  }
+
+  &__formItem {
+    @form-item();
+
+    .n-date-picker {
+      width: 100%;
+    }
+  }
+
+  &__collapse {
+    @item();
+
+    &Header {
+      cursor: pointer;
+      display: flex;
+      background: #fafafa;
+      height: 36px;
+      align-items: center;
+      padding: 0 16px;
+      margin-bottom: 8px;
+      border: 1px solid #d9d9d9;
+    }
+
+    &Item {
+      @display();
+    }
+  }
+
+  &__inputGroup {
+    @item();
+    display: flex;
+    align-items: flex-end;
+
+    > div {
+      flex: 1;
+
+      &:not(:last-of-type) {
+        .n-input__border,
+        .n-base-selection__border {
+          border-right: 0;
+          #form-input-group(right);
+        }
+      }
+
+      &:last-of-type {
+        .n-input__border,
+        .n-base-selection__border {
+          #form-input-group(left);
+        }
+      }
+    }
+  }
+
+  &__combination {
+    width: 100%;
+
+    &Header {
+      > h3 {
+        font-size: 16px;
+        font-weight: 700;
+        padding: 0;
+        margin: 0;
+      }
+
+      display: flex;
+      gap: 12px;
+    }
+
+    &HeaderText {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    &Close {
+      position: absolute;
+      right: 0;
+      top: 5px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: red;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      vertical-align: middle;
+      font-size: 16px;
+    }
+
+    &Content {
+      position: relative;
+    }
+  }
+}

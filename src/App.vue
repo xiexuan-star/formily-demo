@@ -8,11 +8,12 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { useFormRequest } from './form-render/hooks';
-import FormRender from './form-render/formRender.vue';
-import { FieldVisitor } from './form-render/types';
+import { useFormRequest } from './form-render';
+import FormRender from './form-render';
+import { FieldVisitor } from './form-render';
 import { mockData, initialData } from './mock';
 import http from './http';
+import './form-render/style/index.less';
 
 useFormRequest().registGlobHttpInstance(http as any);
 
